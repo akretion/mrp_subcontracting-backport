@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import fields, models
+from odoo import api, fields, models
 from odoo.osv.expression import AND
 
 class MrpBom(models.Model):
@@ -17,3 +17,35 @@ class MrpBom(models.Model):
             return self.search(domain, order='sequence, product_id', limit=1)
         else:
             return self.env['mrp.bom']
+
+    @api.model
+    def _bom_find_domain(self, product_tmpl=None, product=None, picking_type=None, company_id=False, bom_type=False):
+        if product:
+            if not product_tmpl:
+                product_tmpl = product.product_tmpl_id
+            domain = ['|', ('product_id', '=', product.id), '&', ('product_id', '=', False), ('product_tmpl_id', '=', product_tmpl.id)]
+        elif product_tmpl:
+            domain = [('product_tmpl_id', '=', product_tmpl.id)]
+        else:
+            # neither product nor template, makes no sense to search
+            raise UserError(_('You should provide either a product or a product template to search a BoM'))
+        if picking_type:
+            domain += ['|', ('picking_type_id', '=', picking_type.id), ('picking_type_id', '=', False)]
+        if company_id or self.env.context.get('company_id'):
+            domain = domain + ['|', ('company_id', '=', False), ('company_id', '=', company_id or self.env.context.get('company_id'))]
+        if bom_type:
+            domain += [('type', '=', bom_type)]
+        else:
+            domain += [('type', '!=', 'subcontract')]
+        # order to prioritize bom with product_id over the one without
+        return domain
+
+    @api.model
+    def _bom_find(self, product_tmpl=None, product=None, picking_type=None, company_id=False, bom_type=False):
+        """ Finds BoM for particular product, picking and company """
+        if product and product.type == 'service' or product_tmpl and product_tmpl.type == 'service':
+            return False
+        domain = self._bom_find_domain(product_tmpl=product_tmpl, product=product, picking_type=picking_type, company_id=company_id, bom_type=bom_type)
+        if domain is False:
+            return domain
+        return self.search(domain, order='sequence, product_id', limit=1)
