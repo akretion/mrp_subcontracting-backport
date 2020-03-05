@@ -11,11 +11,11 @@ from odoo.tests import tagged
 class TestSubcontractingBasic(TransactionCase):
     def test_subcontracting_location_1(self):
         """ Checks the creation and presence of the subcontracting location. """
-        self.assertTrue(self.env.company.subcontracting_location_id)
-        self.assertTrue(self.env.company.subcontracting_location_id.active)
-        company2 = self.env['res.company'].create({'name': 'Test Company'})
+        self.assertTrue(self.env.user.company_id.subcontracting_location_id)
+        self.assertTrue(self.env.user.company_id.subcontracting_location_id.active)
+        company2 = self.env['res.company'].create({'name': 'Test Company'}) # Test fail to create a new company that way
         self.assertTrue(company2.subcontracting_location_id)
-        self.assertTrue(self.env.company.subcontracting_location_id != company2.subcontracting_location_id)
+        self.assertTrue(self.env.user.company_id.subcontracting_location_id != company2.subcontracting_location_id)
 
 class TestSubcontractingFlows(TestMrpSubcontractingCommon):
     def test_flow_1(self):
@@ -98,15 +98,15 @@ class TestSubcontractingFlows(TestMrpSubcontractingCommon):
             'name': 'Specific partner location',
             'location_id': self.env.ref('stock.stock_location_locations_partner').id,
             'usage': 'internal',
-            'company_id': self.env.company.id,
+            'company_id': self.env.user.company_id.id,
         })
         self.subcontractor_partner1.property_stock_subcontractor = partner_subcontract_location.id
         resupply_rule = resupply_sub_on_order_route.rule_ids.filtered(lambda l:
             l.location_id == self.comp1.property_stock_production and
-            l.location_src_id == self.env.company.subcontracting_location_id)
+            l.location_src_id == self.env.user.company_id.subcontracting_location_id)
         resupply_rule.copy({'location_src_id': partner_subcontract_location.id})
         resupply_warehouse_rule = self.warehouse.route_ids.rule_ids.filtered(lambda l:
-            l.location_id == self.env.company.subcontracting_location_id and
+            l.location_id == self.env.user.company_id.subcontracting_location_id and
             l.location_src_id == self.warehouse.lot_stock_id)
         resupply_warehouse_rule.copy({'location_id': partner_subcontract_location.id})
 
@@ -154,8 +154,8 @@ class TestSubcontractingFlows(TestMrpSubcontractingCommon):
         self.assertEquals(avail_qty_comp2, -1)
         self.assertEquals(avail_qty_finished, 1)
 
-        avail_qty_comp1_in_global_location = self.env['stock.quant']._get_available_quantity(self.comp1, self.env.company.subcontracting_location_id, allow_negative=True)
-        avail_qty_comp2_in_global_location = self.env['stock.quant']._get_available_quantity(self.comp2, self.env.company.subcontracting_location_id, allow_negative=True)
+        avail_qty_comp1_in_global_location = self.env['stock.quant']._get_available_quantity(self.comp1, self.env.user.company_id.subcontracting_location_id, allow_negative=True)
+        avail_qty_comp2_in_global_location = self.env['stock.quant']._get_available_quantity(self.comp2, self.env.user.company_id.subcontracting_location_id, allow_negative=True)
         self.assertEqual(avail_qty_comp1_in_global_location, 0.0)
         self.assertEqual(avail_qty_comp2_in_global_location, 0.0)
 
@@ -237,7 +237,7 @@ class TestSubcontractingFlows(TestMrpSubcontractingCommon):
         orderpoint_form.product_id = self.comp2
         orderpoint_form.product_min_qty = 0.0
         orderpoint_form.product_max_qty = 10.0
-        orderpoint_form.location_id = self.env.company.subcontracting_location_id
+        orderpoint_form.location_id = self.env.user.company_id.subcontracting_location_id
         orderpoint_form.save()
 
         # Create a receipt picking from the subcontractor
@@ -265,16 +265,16 @@ class TestSubcontractingFlows(TestMrpSubcontractingCommon):
         move = self.env['stock.move'].search([
             ('product_id', '=', self.comp2.id),
             ('location_id', '=', warehouse.lot_stock_id.id),
-            ('location_dest_id', '=', self.env.company.subcontracting_location_id.id)
+            ('location_dest_id', '=', self.env.user.company_id.subcontracting_location_id.id)
         ])
         self.assertFalse(move)
 
-        self.env['procurement.group'].run_scheduler(company_id=self.env.company.id)
+        self.env['procurement.group'].run_scheduler(company_id=self.env.user.company_id.id)
 
         move = self.env['stock.move'].search([
             ('product_id', '=', self.comp2.id),
             ('location_id', '=', warehouse.lot_stock_id.id),
-            ('location_dest_id', '=', self.env.company.subcontracting_location_id.id)
+            ('location_dest_id', '=', self.env.user.company_id.subcontracting_location_id.id)
         ])
         self.assertTrue(move)
         picking_delivery = move.picking_id
@@ -430,17 +430,17 @@ class TestSubcontractingFlows(TestMrpSubcontractingCommon):
         lot_c1 = self.env['stock.production.lot'].create({
             'name': 'LOT C1',
             'product_id': self.comp1.id,
-            'company_id': self.env.company.id,
+            'company_id': self.env.user.company_id.id,
         })
         lot_c2 = self.env['stock.production.lot'].create({
             'name': 'LOT C2',
             'product_id': self.comp2.id,
-            'company_id': self.env.company.id,
+            'company_id': self.env.user.company_id.id,
         })
         lot_f1 = self.env['stock.production.lot'].create({
             'name': 'LOT F1',
             'product_id': self.finished.id,
-            'company_id': self.env.company.id,
+            'company_id': self.env.user.company_id.id,
         })
 
         register_form = Form(self.env['mrp.product.produce'].with_context(
@@ -480,7 +480,7 @@ class TestSubcontractingFlows(TestMrpSubcontractingCommon):
         corrected_final_lot = self.env['stock.production.lot'].create({
             'name': 'LOT F2',
             'product_id': self.finished.id,
-            'company_id': self.env.company.id,
+            'company_id': self.env.user.company_id.id,
         })
 
         details_operation_form = Form(picking_receipt.move_lines, view=self.env.ref('stock.view_stock_move_operations'))
@@ -686,12 +686,12 @@ class TestSubcontractingTracking(TransactionCase):
         lot_id = self.env['stock.production.lot'].create({
             'name': 'lot1',
             'product_id': self.finished_lot.id,
-            'company_id': self.env.company.id,
+            'company_id': self.env.user.company_id.id,
         })
         serial_id = self.env['stock.production.lot'].create({
             'name': 'lot1',
             'product_id': self.comp1_sn.id,
-            'company_id': self.env.company.id,
+            'company_id': self.env.user.company_id.id,
         })
         produce_form = Form(self.env['mrp.product.produce'].with_context({
             'active_id': mo.id,
