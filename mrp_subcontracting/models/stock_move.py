@@ -96,7 +96,7 @@ class StockMove(models.Model):
     def _action_cancel(self):
         for move in self:
             if move.is_subcontract:
-                move.move_orig_ids.production_id._action_cancel()
+                move.move_orig_ids.production_id._action_cancel() # TODO : add _action_cancel() to mrp.production objects
         return super()._action_cancel()
 
     def _action_confirm(self, merge=True, merge_into=False):
@@ -199,4 +199,3 @@ operations.""") % ('\n'.join(overprocessed_moves.mapped('product_id.display_name
                     'mo_id': production.id,
                     'product_qty': production.product_uom_qty + quantity_change
                 }).change_prod_qty()
-
