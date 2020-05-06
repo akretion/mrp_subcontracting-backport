@@ -96,7 +96,7 @@ class StockMove(models.Model):
     def _action_cancel(self):
         for move in self:
             if move.is_subcontract:
-                move.move_orig_ids.production_id._action_cancel() # TODO : add _action_cancel() to mrp.production objects
+                move.move_orig_ids.production_id.action_cancel()
         return super()._action_cancel()
 
     def _action_confirm(self, merge=True, merge_into=False):
