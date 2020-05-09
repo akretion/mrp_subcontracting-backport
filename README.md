@@ -1,7 +1,7 @@
 # mrp_subcontracting-backport
 backport of mrp_subcontracting* modules from Odoo CE 13.0 to Odoo 12.0
 
-breaking news! the day I annonced the port, Pedro Baeza told me on Twitter they also did the backport on their side, taking care about adapting the tests in their case. We will probably compare the 2 codebases now...
+breaking news! The day I annonced the port, Pedro Baeza told me on Twitter they also did the backport on their side, taking care about adapting the tests in their case. We will probably compare the 2 codebases now...
 https://github.com/Tecnativa/manufacture/tree/12.0-add-mrp_subcontracting/mrp_subcontracting
 
 It works for us in all the use cases demoed by Odoo SA for v13.
