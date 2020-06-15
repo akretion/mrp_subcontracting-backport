@@ -11,13 +11,14 @@ class StockMoveLine(models.Model):
 
     def create(self, values):
         records = super(StockMoveLine, self).create(values)
-        records.filtered(lambda ml: ml.move_id.is_subcontract).move_id._check_overprocessed_subcontract_qty()
+        records.filtered(lambda ml: ml.move_id.is_subcontract).mapped('move_id')._check_overprocessed_subcontract_qty()
         return records
 
     def write(self, vals):
         # in v13 'mrp_subcontracting'
         res = super(StockMoveLine, self).write(vals)
-        self.filtered(lambda ml: ml.move_id.is_subcontract).move_id._check_overprocessed_subcontract_qty()
+
+        self.filtered(lambda ml: ml.move_id.is_subcontract).mapped('move_id')._check_overprocessed_subcontract_qty()
 
         # in v13 addons/mrp/models/stock_move.py
         for move_line in self:
