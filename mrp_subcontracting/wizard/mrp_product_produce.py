@@ -80,9 +80,9 @@ class MrpProductProduce(models.TransientModel):
                 })
         else:
             rounding = production_move.product_uom.rounding
-            production_move._set_quantity_done(
-                float_round(self.product_qty, precision_rounding=rounding)
-            )
+            # production_move._set_quantity_done(
+            #     float_round(self.product_qty, precision_rounding=rounding)
+            # )
 
         # Part of the '_update_finished_move method' in v13 'mrp_subcontracting'
         """ After producing, set the move line on the subcontract picking. """
