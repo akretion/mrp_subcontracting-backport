@@ -117,8 +117,52 @@ class StockMove(models.Model):
                 'is_subcontract': True,
                 'location_id': move.picking_id.partner_id.with_context(force_company=move.company_id.id).property_stock_subcontractor.id
             })
+
+        mos = self.env['mrp.production']
         for picking, subcontract_details in subcontract_details_per_picking.items():
-            picking._subcontracted_produce(subcontract_details)
+            mos = picking._subcontracted_produce(subcontract_details)
+
+        # Custom to close Subcontracting Pickings and Manufacture Order, Transfer this to jung_purchase module
+        subcontract_moves = self.env['stock.move']
+        for mo in mos:
+            if mo.move_raw_ids:
+                subcontract_moves |= self.env['stock.move'].search(
+                    [('move_dest_ids', 'in', mo.move_raw_ids.ids)])
+
+        for m in subcontract_moves:
+            fo = m.company_id.industry_in_fiscal_operation_id
+            m.fiscal_operation_id = fo
+            m.invoice_state = '2binvoiced'
+            m._onchange_product_id_fiscal()
+            m._onchange_fiscal_operation_id()
+            m._onchange_fiscal_operation_line_id()
+            m._action_assign()
+
+            for ml in m.move_line_ids:
+                ml.qty_done = m.product_qty
+
+        for p in subcontract_moves.mapped('picking_id'):
+            fo = p.company_id.industry_in_fiscal_operation_id
+            p.fiscal_operation_id = fo
+            p.invoice_state = '2binvoiced'
+
+            p.button_validate()
+            p.action_done()
+
+        for mo in mos:
+            produce = self.env['mrp.product.produce'].with_context(
+                    active_id=mo.id).create({
+                        'production_id': mo.id,
+                        'product_qty': mo.product_qty,
+                        'product_uom_id': mo.product_uom_id.id,
+                    })
+            produce.do_produce()
+
+            if mo.state == 'progress':
+                mo.post_inventory()
+                mo.button_mark_done()
+            else:
+                mo.button_mark_done()
 
         res = super(StockMove, self)._action_confirm(merge=merge, merge_into=merge_into)
         if subcontract_details_per_picking:
