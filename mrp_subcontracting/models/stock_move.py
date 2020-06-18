@@ -130,17 +130,16 @@ class StockMove(models.Model):
                     [('move_dest_ids', 'in', mo.move_raw_ids.ids)])
 
         for m in subcontract_moves:
-            subcontract_pickings = []
-            subcontract_pickings.append(m.picking_id)
-
             fo = m.company_id.industry_in_fiscal_operation_id
             m.fiscal_operation_id = fo
             m.invoice_state = '2binvoiced'
             m._onchange_product_id_fiscal()
             m._onchange_fiscal_operation_id()
             m._onchange_fiscal_operation_line_id()
+            m._action_assign()
 
-        subcontract_moves._action_assign()
+            for ml in m.move_line_ids:
+                ml.qty_done = m.product_qty
 
         for p in subcontract_moves.mapped('picking_id'):
             fo = p.company_id.industry_in_fiscal_operation_id
@@ -150,6 +149,7 @@ class StockMove(models.Model):
             p.button_validate()
             p.action_done()
 
+        for mo in mos:
             produce = self.env['mrp.product.produce'].with_context(
                     active_id=mo.id).create({
                         'production_id': mo.id,
